@@ -1,47 +1,36 @@
-import { ArrowUpRightIcon, Folder } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+import MaxWidthWrapper from "@/components/MaxWidthWrapper";
+// import ProductReel from '@/components/ProductReel'
+import { Button, buttonVariants } from "@/components/ui/button";
+import { ArrowDownToLine, CheckCircle, Leaf } from "lucide-react";
 import Link from "next/link";
 
-const MainPage = () => {
+export default function Home() {
   return (
-    <Empty className="sm:mt-6 mt-64">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Folder />
-        </EmptyMedia>
-        <EmptyTitle>No Projects Yet</EmptyTitle>
-        <EmptyDescription>
-          You haven&apos;t created any projects yet. Get started by creating
-          your first project.
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <div className="flex gap-2">
-          <Link href="/create">
-            <Button>Create Project</Button>
-          </Link>
+    <>
+      <MaxWidthWrapper>
+        <div className="py-20 mx-auto text-center flex flex-col items-center max-w-3xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            Your data under ai anlysis{" "}
+            <span className="text-blue-600">ai dashbo</span>
+          </h1>
+          <p className="mt-6 text-lg max-w-prose text-muted-foreground">
+            Welcome to Ai Dashbo. Every data on our finance is analized by our
+            ai to make pridiction and advice on weakness
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 mt-6">
+            <Link href="/products" className={buttonVariants()}>
+              Create Project
+            </Link>
+            <Button variant="ghost">About as &rarr;</Button>
+          </div>
         </div>
-      </EmptyContent>
-      <Button
-        variant="link"
-        asChild
-        className="text-muted-foreground"
-        size="sm"
-      >
-        <a href="#">
-          Learn More <ArrowUpRightIcon />
-        </a>
-      </Button>
-    </Empty>
+
+        {/* <ProductReel
+          query={{ sort: 'desc', limit: 4 }}
+          href='/products?sort=recent'
+          title='Brand new'
+        /> */}
+      </MaxWidthWrapper>
+    </>
   );
-};
-export default MainPage;
+}

@@ -1,122 +1,102 @@
-import { useCallback, useState } from "react";
+"use client";
+
+import React, { useState, useCallback } from "react";
 import { Upload, X, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import Papa from "papaparse";
 
-interface FileWithPreview extends File {
-  id: string;
-}
+// Utility to format file sizes
+const formatFileSize = (size: number) => {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
 
-interface FileUploadProps {
-  onFilesChange: (files: File[]) => void;
-  accept?: string;
-  multiple?: boolean;
-}
-
-export function FileUpload({
-  onFilesChange,
-  accept = ".csv,.xlsx",
-  multiple = true,
-}: FileUploadProps) {
-  const [files, setFiles] = useState<FileWithPreview[]>([]);
+export function FileUpload({ onParsed }: { onParsed?: (data: any[]) => void }) {
+  const [files, setFiles] = useState<any[]>([]);
+  const [parsedData, setParsedData] = useState<any[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
+  // ✅ FIXED: properly closed parentheses and braces
+  const handleFileUpload = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-      const droppedFiles = Array.from(e.dataTransfer.files).filter((file) => {
-        const extension = "." + file.name.split(".").pop()?.toLowerCase();
-        return accept.split(",").some((ext) => ext.trim() === extension);
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results: any) => {
+          console.log("✅ Parsed CSV:", results.data);
+          setParsedData(results.data);
+          onParsed?.(results.data); // send parsed data to parent
+        },
       });
 
-      if (droppedFiles.length > 0) {
-        const filesWithId = droppedFiles.map((file) =>
-          Object.assign(file, {
-            id: `${file.name}-${Date.now()}-${Math.random()}`,
-          })
-        ) as FileWithPreview[];
-
-        const newFiles = multiple ? [...files, ...filesWithId] : filesWithId;
-        setFiles(newFiles);
-        onFilesChange(newFiles);
-      }
+      setFiles([{ id: Date.now(), name: file.name, size: file.size }]);
     },
-    [files, multiple, accept, onFilesChange]
+    [onParsed]
   );
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-
-    const filesWithId = selectedFiles.map((file) =>
-      Object.assign(file, { id: `${file.name}-${Date.now()}-${Math.random()}` })
-    ) as FileWithPreview[];
-
-    const newFiles = multiple ? [...files, ...filesWithId] : filesWithId;
-    setFiles(newFiles);
-    onFilesChange(newFiles);
-  };
-
-  const removeFile = (fileId: string) => {
-    const newFiles = files.filter((f) => f.id !== fileId);
-    setFiles(newFiles);
-    onFilesChange(newFiles);
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  // Remove file
+  const removeFile = (id: number) => {
+    setFiles((prev) => prev.filter((file) => file.id !== id));
   };
 
   return (
     <div className="space-y-4">
+      {/* Upload area */}
       <motion.div
+        className={`relative border-2 border-dashed rounded-xl p-10 text-center transition-all duration-300 ${
+          isDragging
+            ? "border-primary bg-primary/5 scale-[1.02]"
+            : "border-muted"
+        }`}
+        whileHover={{ scale: 1.01 }}
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
         }}
         onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-        className={`
-          relative border-2 border-dashed rounded-xl p-10 text-center transition-all duration-300
-          ${
-            isDragging
-              ? "border-primary bg-primary/10 shadow-glow scale-[1.02]"
-              : "border-border glass-card hover:border-primary/50 hover:shadow-elevated hover:scale-[1.01]"
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          const file = e.dataTransfer.files[0];
+          if (file) {
+            Papa.parse(file, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results: any) => {
+                console.log("✅ Parsed CSV:", results.data);
+                setParsedData(results.data);
+                onParsed?.(results.data);
+              },
+            });
+            setFiles([{ id: Date.now(), name: file.name, size: file.size }]);
           }
-        `}
-        whileHover={{ scale: 1.01 }}
-        transition={{ duration: 0.2 }}
-        data-testid="file-dropzone"
+        }}
       >
         <input
           type="file"
           id="file-input"
           className="hidden"
-          accept={accept}
-          multiple={multiple}
-          onChange={handleFileInput}
-          aria-label="Upload files"
+          onChange={handleFileUpload}
+          accept=".csv"
         />
 
         <label
           htmlFor="file-input"
           className="cursor-pointer flex flex-col items-center space-y-3"
-          aria-describedby="upload-instructions"
         >
           <motion.div
             animate={
               isDragging ? { scale: 1.2, rotate: 5 } : { scale: 1, rotate: 0 }
             }
             transition={{ type: "spring", stiffness: 300 }}
-            className="relative"
           >
             <motion.div
-              className="absolute inset-0 bg-primary/20 rounded-full blur-xl"
+              className="absolute inset-0 bg-primary/10 rounded-full blur-xl"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             />
@@ -124,20 +104,17 @@ export function FileUpload({
           </motion.div>
 
           <div>
-            <p
-              className="text-lg font-semibold text-foreground mb-2"
-              id="upload-instructions"
-            >
-              Drag CSV(s) here or click to browse
+            <p className="text-lg font-semibold text-foreground mb-2">
+              Drag CSV here or click to browse
             </p>
             <p className="text-sm text-muted-foreground">
-              Accepts {accept} files {multiple && "• Multiple files supported"}
+              Accepts only .csv files
             </p>
           </div>
         </label>
       </motion.div>
 
-      {/* File List */}
+      {/* File list */}
       <AnimatePresence mode="popLayout">
         {files.length > 0 && (
           <motion.div
@@ -145,20 +122,17 @@ export function FileUpload({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="space-y-2"
-            role="list"
-            aria-label="Uploaded files"
           >
             {files.map((file) => (
               <motion.div
                 key={file.id}
-                initial={{ opacity: 0, x: -20, scale: 0.9 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 20, scale: 0.9 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
                 whileHover={{ scale: 1.02, x: 4 }}
-                className="flex items-center justify-between p-4 glass-card rounded-xl border-2 border-primary/20 shadow-md"
-                data-testid="file-item"
+                className="flex items-center justify-between p-4 rounded-xl border-2 border-primary/10 shadow-sm"
               >
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <FileText className="w-5 h-5 text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
@@ -174,7 +148,6 @@ export function FileUpload({
                   size="sm"
                   onClick={() => removeFile(file.id)}
                   className="flex-shrink-0 h-8 w-8 p-0"
-                  aria-label={`Remove ${file.name}`}
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -183,6 +156,16 @@ export function FileUpload({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Parsed CSV preview */}
+      {parsedData.length > 0 && (
+        <div className="mt-4 p-4 border rounded-lg bg-card">
+          <h3 className="font-semibold text-lg mb-2">Parsed Data Preview</h3>
+          <pre className="text-sm max-h-64 overflow-auto bg-muted p-3 rounded-md">
+            {JSON.stringify(parsedData.slice(0, 5), null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }

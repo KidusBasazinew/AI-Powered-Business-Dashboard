@@ -1,0 +1,22 @@
+const mockResult: GeneratedResult = {
+        summary: `Based on the uploaded data${
+          context ? ` with focus on "${context}"` : ""
+        }, here's your executive summary:`,
+        keyInsights: [
+          "Revenue increased 23% quarter-over-quarter, driven primarily by enterprise tier subscriptions",
+          "Customer retention improved to 94%, with the strongest retention in mid-market segment",
+          "Top 10% of customers contribute 45% of total revenue, indicating healthy concentration",
+        ],
+        suggestedActions: [
+          "Expand enterprise sales team to capitalize on momentum",
+          "Invest in customer success programs for mid-market segment",
+          "Develop targeted upsell strategies for high-value customers",
+        ],
+      };
+
+      const examplePrompts = [
+    "Revenue trends and growth opportunities",
+    "Customer churn analysis",
+    "Top performing products",
+    "Operational efficiency metrics",
+  ];
