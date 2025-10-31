@@ -15,16 +15,19 @@ import { Sparkles, ShieldCheck, Brain, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import MaxWidthWrapper from "@/components/MaxWidthWrapper";
 import { FileUpload } from "@/components/FileUpload"; // 👈 import your backend-style FileUpload
-
+import axios from "axios";
+import { useRouter } from "next/navigation";
 type CsvRow = Record<string, string | number>;
 
 export default function CreateProjectPage(): JSX.Element {
+  const router = useRouter();
+
   const [selectedAction, setSelectedAction] = useState<string>("");
   const [showGraphs, setShowGraphs] = useState<boolean>(false);
   const [csvData, setCsvData] = useState<CsvRow[]>([]);
-
+  const [responses, setResponses] = useState<string>("");
   // handle submit
-  const handleSubmit = (): void => {
+  const handleSubmit = async () => {
     console.log("✅ Action:", selectedAction);
     console.log("✅ CSV Data Rows:", csvData.length);
 
@@ -35,6 +38,15 @@ export default function CreateProjectPage(): JSX.Element {
 
     alert(`Action: ${selectedAction || "None"}\nRows: ${csvData.length}`);
     // ⚙️ Here you can trigger a backend API call (e.g., POST /api/analyze)
+    const response = await axios.post("http://localhost:3000/api/analyze", {
+      data: csvData,
+    });
+
+    console.log("✅ Response from backend:", response.data);
+    setResponses(response.data.text);
+
+    localStorage.setItem("ai_result", response.data.text);
+    router.push("/create/result");
   };
 
   return (
