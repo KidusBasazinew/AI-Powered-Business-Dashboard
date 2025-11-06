@@ -28,8 +28,8 @@ export default function CreateProjectPage(): JSX.Element {
   const [responses, setResponses] = useState<string>("");
   // handle submit
   const handleSubmit = async () => {
-    console.log("✅ Action:", selectedAction);
-    console.log("✅ CSV Data Rows:", csvData.length);
+    console.log("Action:", selectedAction);
+    console.log("CSV Data Rows:", csvData.length);
 
     if (!csvData.length) {
       alert("Please upload a CSV file before continuing.");
@@ -42,10 +42,11 @@ export default function CreateProjectPage(): JSX.Element {
       data: csvData,
     });
 
-    console.log("✅ Response from backend:", response.data);
+    console.log("Response from backend:", response.data);
     setResponses(response.data.text);
 
     localStorage.setItem("ai_result", response.data.text);
+    localStorage.setItem("csv_data", JSON.stringify(csvData));
     router.push("/create/result");
   };
 

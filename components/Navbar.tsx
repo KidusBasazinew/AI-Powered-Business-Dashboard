@@ -39,7 +39,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <Link href="/" className="text-lg font-bold text-primary">
               <span className="text-red-600">AI </span>
-              Dashbo
+              Dashboard
             </Link>
           </div>
 
@@ -89,7 +89,7 @@ export default function Navbar() {
               >
                 <path
                   d="M4 6h16M4 12h16M4 18h16"
-                  stroke="#0B61FF"
+                  stroke="currentColor"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"

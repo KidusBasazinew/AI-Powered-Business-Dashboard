@@ -19,18 +19,66 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Line, Bar } from "react-chartjs-2";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
 export default function ResultPage() {
   const [analysis, setAnalysis] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [insights, setInsights] = useState<string[]>([]);
 
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [availableMetrics, setAvailableMetrics] = useState<string[]>([]);
+
   useEffect(() => {
     const stored = localStorage.getItem("ai_result");
+    const storedCsv = localStorage.getItem("csv_data");
+
     if (stored) {
       setAnalysis(stored);
-      // Extract key insights from the analysis
       extractInsights(stored);
       setIsLoading(false);
+    }
+
+    if (storedCsv) {
+      try {
+        const parsed = JSON.parse(storedCsv);
+        setCsvData(parsed);
+
+        if (parsed.length > 0) {
+          // store all numeric columns as available metrics
+          const first = parsed[0];
+          const numericCols = Object.keys(first).filter(
+            (k) => !isNaN(Number(first[k]))
+          );
+          setAvailableMetrics(numericCols);
+          setSelectedMetrics(numericCols.slice(0, 2)); // show first 2 by default
+        }
+      } catch {
+        console.warn("Could not parse stored CSV data.");
+      }
     }
   }, []);
 
@@ -44,6 +92,24 @@ export default function ResultPage() {
       .map((line) => line.replace(/^[-*]\s*/, "").trim())
       .slice(0, 6); // Limit to 6 insights
     setInsights(extracted);
+  };
+
+  const getChartData = () => {
+    if (!csvData.length || !selectedMetrics.length) return null;
+
+    const columns = Object.keys(csvData[0]);
+    const labelKey = columns[1] || "Index"; // e.g., "Country" or 2nd column
+    const labels = csvData.map((row) => String(row[labelKey]));
+
+    const datasets = selectedMetrics.map((key, idx) => ({
+      label: key,
+      data: csvData.map((row) => Number(row[key]) || 0),
+      borderColor: `hsl(${idx * 50}, 70%, 50%)`,
+      backgroundColor: `hsla(${idx * 50}, 70%, 50%, 0.4)`,
+      tension: 0.3,
+    }));
+
+    return { labels, datasets };
   };
 
   const handleDownload = () => {
@@ -90,6 +156,81 @@ export default function ResultPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Header Section */}
+      {csvData.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-8"
+        >
+          <Card className="shadow-lg border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-lg">
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                  Data Visualization
+                </div>
+
+                {/* 🧮 Metric Selector */}
+                <select
+                  multiple
+                  value={selectedMetrics}
+                  onChange={(e) =>
+                    setSelectedMetrics(
+                      Array.from(e.target.selectedOptions, (opt) => opt.value)
+                    )
+                  }
+                  className="border border-slate-300 dark:border-slate-600 rounded-md px-2 py-1 text-sm bg-background"
+                >
+                  {availableMetrics.map((metric) => (
+                    <option key={metric} value={metric}>
+                      {metric}
+                    </option>
+                  ))}
+                </select>
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              {getChartData() ? (
+                <>
+                  <Line
+                    data={getChartData()!}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: { position: "top" },
+                        title: { display: true, text: "Line Chart (Filtered)" },
+                      },
+                      scales: {
+                        x: { ticks: { autoSkip: true, maxTicksLimit: 10 } },
+                      },
+                    }}
+                  />
+                  <Bar
+                    data={getChartData()!}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: { position: "top" },
+                        title: { display: true, text: "Bar Chart (Filtered)" },
+                      },
+                      scales: {
+                        x: { ticks: { autoSkip: true, maxTicksLimit: 10 } },
+                      },
+                    }}
+                  />
+                </>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  Select one or more metrics to visualize.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
